@@ -1,12 +1,14 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import ProductTable from './components/ProductTable';
 import ProductForm from './components/ProductForm';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { PlusCircle, Search } from 'lucide-react';
 import type { Product, Category } from '@/types';
-import { mockProducts, mockCategories } from '@/lib/mockData'; // Using mock data
+import { mockProducts, mockCategories } from '@/lib/mockData'; 
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -19,32 +21,29 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [adminSearchTerm, setAdminSearchTerm] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
-    // Simulate fetching data
-    setProducts(mockProducts);
+    setAllProducts(mockProducts);
     setCategories(mockCategories);
   }, []);
 
   const handleFormSubmit = async (values: Omit<Product, 'id'> & { price: number }) => {
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));
 
     if (editingProduct) {
-      // Update product
-      setProducts(prev => 
+      setAllProducts(prev => 
         prev.map(prod => prod.id === editingProduct.id ? { ...prod, ...values, price: Number(values.price) } : prod)
       );
       toast({ title: "Producto Actualizado", description: `El producto "${values.name}" ha sido actualizado.` });
     } else {
-      // Create new product
       const newProduct: Product = { id: `prod-${Date.now()}`, ...values, price: Number(values.price) };
-      setProducts(prev => [...prev, newProduct]);
+      setAllProducts(prev => [...prev, newProduct]);
       toast({ title: "Producto Creado", description: `El producto "${values.name}" ha sido creado.` });
     }
     setIsFormOpen(false);
@@ -57,9 +56,8 @@ export default function ProductsPage() {
   };
 
   const handleDelete = (productId: string) => {
-    // Simulate API call
     if (confirm('¿Estás seguro de que quieres eliminar este producto? Esta acción no se puede deshacer.')) {
-      setProducts(prev => prev.filter(prod => prod.id !== productId));
+      setAllProducts(prev => prev.filter(prod => prod.id !== productId));
       toast({ title: "Producto Eliminado", description: "El producto ha sido eliminado.", variant: 'destructive' });
     }
   };
@@ -69,20 +67,48 @@ export default function ProductsPage() {
     setIsFormOpen(true);
   };
 
+  const displayedAdminProducts = useMemo(() => {
+    if (!adminSearchTerm.trim()) {
+      return allProducts;
+    }
+    const lowerSearchTerm = adminSearchTerm.toLowerCase();
+    return allProducts.filter(product => {
+      const category = categories.find(cat => cat.id === product.categoryId);
+      return (
+        product.name.toLowerCase().includes(lowerSearchTerm) ||
+        (product.description && product.description.toLowerCase().includes(lowerSearchTerm)) ||
+        (category && category.name.toLowerCase().includes(lowerSearchTerm))
+      );
+    });
+  }, [allProducts, adminSearchTerm, categories]);
+
   return (
     <div className="space-y-6">
       <Card className="shadow-lg">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <CardTitle className="text-2xl font-bold">Gestión de Productos</CardTitle>
             <CardDescription>Añade, edita y elimina los productos de tu bar.</CardDescription>
           </div>
-          <Button onClick={openFormForNew}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Nuevo Producto
-          </Button>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full md:w-auto">
+             <div className="relative w-full sm:w-auto flex-grow sm:flex-grow-0">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Buscar productos..."
+                    value={adminSearchTerm}
+                    onChange={(e) => setAdminSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 h-10" 
+                    aria-label="Buscar productos en admin"
+                />
+            </div>
+            <Button onClick={openFormForNew} className="w-full sm:w-auto">
+                <PlusCircle className="mr-2 h-4 w-4" /> Nuevo Producto
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <ProductTable products={products} categories={categories} onEdit={handleEdit} onDelete={handleDelete} />
+          <ProductTable products={displayedAdminProducts} categories={categories} onEdit={handleEdit} onDelete={handleDelete} />
         </CardContent>
       </Card>
 
@@ -95,7 +121,7 @@ export default function ProductsPage() {
             </DialogDescription>
           </DialogHeader>
           <ProductForm 
-            onSubmit={handleFormSubmit as any} // Casting because values may not exactly match Product type before conversion
+            onSubmit={handleFormSubmit as any} 
             initialData={editingProduct}
             categories={categories}
             onClose={() => { setIsFormOpen(false); setEditingProduct(null); }}
@@ -105,3 +131,4 @@ export default function ProductsPage() {
     </div>
   );
 }
+
