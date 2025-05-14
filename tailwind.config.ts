@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import { fontFamily as defaultFontFamily } from 'tailwindcss/defaultTheme'; // Import defaultTheme
 
 export default {
     darkMode: ["class"],
@@ -9,6 +10,9 @@ export default {
   ],
   theme: {
   	extend: {
+      fontFamily: { // Added this section to use the --font-inter variable
+        sans: ['var(--font-inter)', ...defaultFontFamily.sans],
+      },
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
