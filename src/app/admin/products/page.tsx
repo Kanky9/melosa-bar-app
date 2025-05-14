@@ -29,7 +29,11 @@ export default function ProductsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    setAllProducts(mockProducts);
+    // Initialize allProducts with a copy of mockProducts to avoid direct mutation issues with React state
+    // if mockProducts itself was a state from a higher component or context.
+    // For this specific case where mockProducts is a global mutable array, 
+    // this ensures allProducts starts fresh from the potentially mutated source.
+    setAllProducts([...mockProducts]); 
     setCategories(mockCategories);
   }, []);
 
@@ -37,13 +41,21 @@ export default function ProductsPage() {
     await new Promise(resolve => setTimeout(resolve, 500));
 
     if (editingProduct) {
+      const updatedProduct = { ...editingProduct, ...values, price: Number(values.price) };
       setAllProducts(prev => 
-        prev.map(prod => prod.id === editingProduct.id ? { ...prod, ...values, price: Number(values.price) } : prod)
+        prev.map(prod => prod.id === editingProduct.id ? updatedProduct : prod)
       );
+      // Also update the mockProducts array directly
+      const productIndex = mockProducts.findIndex(p => p.id === editingProduct.id);
+      if (productIndex !== -1) {
+        mockProducts[productIndex] = updatedProduct;
+      }
       toast({ title: "Producto Actualizado", description: `El producto "${values.name}" ha sido actualizado.` });
     } else {
-      const newProduct: Product = { id: `prod-${Date.now()}`, ...values, price: Number(values.price) };
+      const newProduct: Product = { id: `prod-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, ...values, price: Number(values.price) };
       setAllProducts(prev => [...prev, newProduct]);
+      // Also update the mockProducts array directly
+      mockProducts.push(newProduct);
       toast({ title: "Producto Creado", description: `El producto "${values.name}" ha sido creado.` });
     }
     setIsFormOpen(false);
@@ -58,6 +70,11 @@ export default function ProductsPage() {
   const handleDelete = (productId: string) => {
     if (confirm('¿Estás seguro de que quieres eliminar este producto? Esta acción no se puede deshacer.')) {
       setAllProducts(prev => prev.filter(prod => prod.id !== productId));
+      // Also update the mockProducts array directly
+      const productIndex = mockProducts.findIndex(p => p.id === productId);
+      if (productIndex !== -1) {
+        mockProducts.splice(productIndex, 1);
+      }
       toast({ title: "Producto Eliminado", description: "El producto ha sido eliminado.", variant: 'destructive' });
     }
   };
