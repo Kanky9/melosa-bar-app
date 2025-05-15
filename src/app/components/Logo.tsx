@@ -1,9 +1,2 @@
-import Link from 'next/link';
 
-export default function Logo() {
-  return (
-    <Link href="/" className="text-3xl font-bold text-primary hover:text-accent transition-colors">
-      Melosa
-    </Link>
-  );
-}
+Delete this file. It is a duplicate and not used by the main layout. The correct Logo is in /src/components/Logo.tsx

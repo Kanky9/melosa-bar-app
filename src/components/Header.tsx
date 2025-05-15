@@ -1,10 +1,28 @@
 
+'use client';
+
 import Link from 'next/link';
-import Logo from './Logo'; 
+import Logo from './Logo';
 import { Button } from '@/components/ui/button';
-import { Home } from 'lucide-react';
+import { Home, ShieldCheck } from 'lucide-react'; // Added ShieldCheck for Admin
+import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/firebase'; // Import Firebase auth
 
 export default function Header() {
+  const router = useRouter();
+
+  const handleAdminClick = () => {
+    // Check localStorage first for a quicker client-side indication
+    const isAdminAuthenticated = localStorage.getItem('isAdminAuthenticated') === 'true';
+    const currentUser = auth.currentUser; // Also check Firebase auth state
+
+    if (isAdminAuthenticated && currentUser) {
+      router.push('/admin');
+    } else {
+      router.push('/admin-login');
+    }
+  };
+
   return (
     <header className="bg-foreground text-background shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -16,7 +34,15 @@ export default function Header() {
               <span className="hidden sm:inline">Catálogo</span>
             </Link>
           </Button>
-          {/* El enlace de Admin se ha eliminado. Los administradores navegarán a /admin-login directamente. */}
+          <Button
+            variant="ghost"
+            onClick={handleAdminClick}
+            className="text-background hover:bg-primary hover:text-primary-foreground"
+            aria-label="Panel de Administración"
+          >
+            <ShieldCheck className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Admin</span>
+          </Button>
         </nav>
       </div>
     </header>
