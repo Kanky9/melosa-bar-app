@@ -10,8 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import Logo from '@/components/Logo';
+// Logo component is no longer imported
 import { Eye, EyeOff } from 'lucide-react'; // Import Eye and EyeOff icons
+import { cn } from '@/lib/utils'; // Import cn for styling
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
@@ -51,7 +52,13 @@ export default function AdminLoginPage() {
       <Card className="w-full max-w-sm shadow-xl">
         <CardHeader className="text-center">
           <div className="mb-6 flex justify-center">
-            <Logo />
+            {/* Replaced <Logo /> with static styled text */}
+            <div className={cn(
+              "text-3xl font-bold text-primary",
+              "text-glow-primary" 
+            )}>
+              Melosa
+            </div>
           </div>
           <CardTitle className="text-2xl font-bold">Acceso Administrador</CardTitle>
           <CardDescription>Ingresa tus credenciales para acceder al panel.</CardDescription>
