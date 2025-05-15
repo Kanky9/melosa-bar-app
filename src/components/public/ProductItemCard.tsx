@@ -1,6 +1,6 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Product } from '@/types';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Product } from "@/types";
 
 interface ProductItemCardProps {
   product: Product;
@@ -12,26 +12,25 @@ export default function ProductItemCard({ product }: ProductItemCardProps) {
   };
 
   return (
-    <Card className="flex flex-col overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 h-full bg-card/80 backdrop-blur-sm">
-      <CardHeader className="p-4 flex-grow">
-        <CardTitle className="text-xl font-semibold text-foreground mb-1 leading-tight" title={product.name}>
-          {product.name}
-        </CardTitle>
+    <Card className="flex flex-col justify-between h-full shadow-lg rounded-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+      <CardHeader className="p-4">
+        <CardTitle className="text-xl font-semibold text-foreground mb-1">{product.name}</CardTitle>
         {product.description && (
-          <CardDescription className="text-sm text-muted-foreground mt-2 break-words">
+          <CardDescription className="text-sm text-muted-foreground whitespace-pre-line">
             {product.description}
           </CardDescription>
         )}
       </CardHeader>
-      <CardContent className="p-4 pt-2">
-        <div className="mt-auto"> {/* Pushes price to the bottom of CardContent */}
-          <div className="inline-block bg-black/75 px-3 py-1 rounded-md shadow-md">
-            <p className="text-lg font-bold text-accent">
-              {formatPrice(product.price)}
-            </p>
-          </div>
-        </div>
+      <CardContent className="p-4 pt-0 flex-grow">
+        {/* Content can be added here if needed in the future */}
       </CardContent>
+      <CardFooter className="p-4 bg-card-foreground/5 flex justify-end">
+        {product.price > 0 && (
+           <div className="bg-black/75 text-accent font-bold py-1 px-3 rounded-md text-lg">
+            {formatPrice(product.price)}
+          </div>
+        )}
+      </CardFooter>
     </Card>
   );
 }
