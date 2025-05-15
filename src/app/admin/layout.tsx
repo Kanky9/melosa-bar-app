@@ -7,7 +7,6 @@ import { auth } from '@/lib/firebase';
 import type { User } from 'firebase/auth';
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-// Logo component is no longer imported here directly for the header display
 import { Archive, Package, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -25,67 +24,67 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null); // To store Firebase auth user state
   const { toast } = useToast();
 
   useEffect(() => {
+    setIsLoading(true); // Ensure loading is true at the start of any potential auth check/redirect
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
+      setUser(currentUser); // Set user state from Firebase
       const isAdminAuthenticated = localStorage.getItem('isAdminAuthenticated') === 'true';
 
       if (!currentUser || !isAdminAuthenticated) {
-        if (pathname !== '/admin-login') {
-          router.replace('/admin-login');
-        } else {
-          setIsLoading(false); 
-        }
+        // If not a Firebase authenticated user OR not marked as admin in localStorage,
+        // redirect to the login page. AdminLayout is for protected routes.
+        router.replace('/admin-login');
+        // setIsLoading(false) is not strictly needed here as redirection will cause a new render cycle.
       } else {
+        // User is authenticated via Firebase AND marked as admin in localStorage.
         if (pathname === '/admin' || pathname === '/admin/') {
+          // If they are trying to access the base /admin or /admin/ path,
+          // redirect them to a default admin page (e.g., categories).
           router.replace('/admin/categories');
-        } else if (pathname === '/admin-login') {
-          router.replace('/admin/categories');
-        }
-        else {
-           setIsLoading(false); 
+        } else {
+          // They are on a specific, valid admin page (e.g., /admin/products or /admin/categories).
+          // Allow content to render.
+          setIsLoading(false);
         }
       }
     });
 
-    return () => unsubscribe();
-  }, [router, pathname]);
+    return () => unsubscribe(); // Cleanup subscription on unmount
+  }, [router, pathname]); // Dependencies for the effect
 
   const handleLogout = async () => {
     try {
       await auth.signOut();
       localStorage.removeItem('isAdminAuthenticated');
       toast({ title: 'Sesión cerrada', description: 'Has cerrado sesión correctamente.' });
-      router.push('/admin-login');
+      router.push('/admin-login'); // Use push for logout for better browser history
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       toast({ title: 'Error', description: 'No se pudo cerrar la sesión.', variant: 'destructive' });
     }
   };
   
-  if (isLoading && pathname !== '/admin-login') {
-    return <div className="flex min-h-screen items-center justify-center"><p>Verificando acceso...</p></div>;
-  }
-  
-  if (pathname === '/admin-login' && (!user || localStorage.getItem('isAdminAuthenticated') !== 'true')) {
-    return <>{children}</>; 
-  }
-
-  if (!user && pathname !== '/admin-login') {
-     return <div className="flex min-h-screen items-center justify-center"><p>Verificando acceso...</p></div>;
-  }
-   if (user && localStorage.getItem('isAdminAuthenticated') === 'true' && pathname === '/admin-login') {
-    return <div className="flex min-h-screen items-center justify-center"><p>Redirigiendo...</p></div>;
+  // While authentication and redirection logic is processing, show a loading state.
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p>Verificando acceso...</p>
+      </div>
+    );
   }
 
+  // If this point is reached, isLoading is false. This means:
+  // 1. The user is authenticated (Firebase + localStorage).
+  // 2. They are on a specific admin page (e.g., /admin/categories or /admin/products),
+  //    not /admin or /admin/ (which would have been redirected).
   return (
     <div className="flex min-h-screen flex-col bg-muted/40">
       <header className="sticky top-0 z-30 flex h-auto items-center gap-4 border-b bg-background px-4 py-3 sm:px-6 md:py-4">
         <div className="flex items-center gap-2 mr-auto">
-          {/* Replaced <Logo /> with static styled text */}
+          {/* Replaced <Logo /> with static styled text for admin panel branding */}
           <div className={cn(
             "text-3xl font-bold text-primary",
             "text-glow-primary" // Assuming text-glow-primary is defined in globals.css
