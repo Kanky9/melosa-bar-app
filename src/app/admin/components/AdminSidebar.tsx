@@ -1,11 +1,14 @@
+
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Archive, Package, LayoutGrid } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Archive, Package, LayoutGrid, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/Logo';
+import { auth } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutGrid },
@@ -15,6 +18,20 @@ const navItems = [
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      localStorage.removeItem('isAdminAuthenticated'); // Limpiar el indicador local
+      toast({ title: 'Sesión cerrada', description: 'Has cerrado sesión correctamente.' });
+      router.push('/admin-login');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      toast({ title: 'Error', description: 'No se pudo cerrar la sesión.', variant: 'destructive' });
+    }
+  };
 
   return (
     <aside className="w-64 bg-sidebar text-sidebar-foreground p-6 flex flex-col space-y-6 fixed h-full shadow-lg">
@@ -44,8 +61,18 @@ export default function AdminSidebar() {
           ))}
         </ul>
       </nav>
-      <div className="mt-auto text-center text-xs text-sidebar-foreground/70">
-        Melosa Admin Panel
+      <div className="mt-auto space-y-3">
+        <Button
+            variant="ghost"
+            className="w-full justify-start text-base h-12 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            onClick={handleLogout}
+        >
+            <LogOut className="mr-3 h-5 w-5" />
+            Cerrar Sesión
+        </Button>
+        <div className="text-center text-xs text-sidebar-foreground/70">
+          Melosa Admin Panel
+        </div>
       </div>
     </aside>
   );
