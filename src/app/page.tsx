@@ -207,7 +207,7 @@ export default function CatalogPage() {
               <div className="space-y-6">
                 {groupedAndFilteredProducts.map((group) => (
                   <div key={group.category.id}>
-                    <h3 className="text-2xl font-semibold mb-3 text-primary border-b border-primary pb-2 text-glow-primary">{group.category.name}</h3>
+                    <h3 className="text-2xl font-semibold mb-3 text-primary border-b border-primary pb-2">{group.category.name}</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                       {group.products.map((product) => (
                         <ProductItemCard key={product.id} product={product} />
