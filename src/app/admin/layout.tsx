@@ -7,7 +7,7 @@ import { auth } from '@/lib/firebase';
 import type { User } from 'firebase/auth';
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import Logo from '@/components/Logo';
+// Logo component is no longer imported here directly for the header display
 import { Archive, Package, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -40,11 +40,9 @@ export default function AdminLayout({
           setIsLoading(false); 
         }
       } else {
-        // If authenticated and on /admin, redirect to /admin/categories
-        if (pathname === '/admin') {
+        if (pathname === '/admin' || pathname === '/admin/') {
           router.replace('/admin/categories');
         } else if (pathname === '/admin-login') {
-          // If authenticated and somehow on /admin-login, redirect to /admin/categories
           router.replace('/admin/categories');
         }
         else {
@@ -68,36 +66,33 @@ export default function AdminLayout({
     }
   };
   
-  // If loading, and not on admin-login, show loading.
-  // If on admin-login, and not yet user, allow login to show (isLoading might be false here from auth check)
   if (isLoading && pathname !== '/admin-login') {
     return <div className="flex min-h-screen items-center justify-center"><p>Verificando acceso...</p></div>;
   }
   
-  // If we're on admin-login and not authenticated (isLoading is false by now) let it render
   if (pathname === '/admin-login' && (!user || localStorage.getItem('isAdminAuthenticated') !== 'true')) {
-    return <>{children}</>; // Render the login page
+    return <>{children}</>; 
   }
 
-  // If there's no user and we are NOT on the login page, it means redirection should have happened or is in progress.
-  // Or, if we ARE on the login page BUT authenticated, redirection should happen.
-  // This state is mostly a transition or error, show loading.
   if (!user && pathname !== '/admin-login') {
      return <div className="flex min-h-screen items-center justify-center"><p>Verificando acceso...</p></div>;
   }
    if (user && localStorage.getItem('isAdminAuthenticated') === 'true' && pathname === '/admin-login') {
-    // This case should have been handled by useEffect, but as a fallback
-    // router.replace('/admin/categories'); // This might cause infinite loop if useEffect is not fast enough
     return <div className="flex min-h-screen items-center justify-center"><p>Redirigiendo...</p></div>;
   }
 
-
-  // If we are authenticated and on any admin page (not /admin-login), render the layout
   return (
     <div className="flex min-h-screen flex-col bg-muted/40">
       <header className="sticky top-0 z-30 flex h-auto items-center gap-4 border-b bg-background px-4 py-3 sm:px-6 md:py-4">
         <div className="flex items-center gap-2 mr-auto">
-          <Logo /> <span className="font-semibold hidden sm:inline">Admin</span>
+          {/* Replaced <Logo /> with static styled text */}
+          <div className={cn(
+            "text-3xl font-bold text-primary",
+            "text-glow-primary" // Assuming text-glow-primary is defined in globals.css
+          )}>
+            Melosa
+          </div>
+          <span className="font-semibold text-xl text-foreground hidden sm:inline">Admin</span>
         </div>
         <nav className="flex items-center gap-1 sm:gap-2">
           {adminNavItems.map((item) => (
