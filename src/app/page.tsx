@@ -120,7 +120,7 @@ export default function CatalogPage() {
     <div className="space-y-8">
       <header className="text-center my-8">
         <h1 className="text-5xl font-extrabold tracking-tight text-foreground">
-          Bienvenido a <span className="text-primary text-glow-primary">Melosa Bar</span>
+          Bienvenido a <span className="text-primary">Melosa Bar</span>
         </h1>
         <p className="mt-4 text-xl text-muted-foreground">
           Descubre nuestro delicioso menú, preparado con los mejores ingredientes.
