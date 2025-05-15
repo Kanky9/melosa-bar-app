@@ -33,9 +33,9 @@ export default function Header() {
               <span className="hidden sm:inline">Catálogo</span>
             </Link>
           </Button>
-          <Button 
-            variant="ghost" 
-            onClick={handleAdminClick} 
+          <Button
+            variant="ghost"
+            onClick={handleAdminClick}
             className="text-background hover:bg-primary hover:text-primary-foreground"
             aria-label="Panel de Administración"
           >
