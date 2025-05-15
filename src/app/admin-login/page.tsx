@@ -11,11 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import Logo from '@/components/Logo';
+import { Eye, EyeOff } from 'lucide-react'; // Import Eye and EyeOff icons
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // State for password visibility
   const router = useRouter();
   const { toast } = useToast();
 
@@ -24,8 +26,6 @@ export default function AdminLoginPage() {
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // En una app real, el servidor debería emitir un token/cookie seguro.
-      // Para este ejemplo, usamos localStorage (NO SEGURO PARA PRODUCCIÓN).
       localStorage.setItem('isAdminAuthenticated', 'true');
       toast({ title: 'Inicio de sesión exitoso', description: 'Redirigiendo al panel de admin...' });
       router.push('/admin');
@@ -40,6 +40,10 @@ export default function AdminLoginPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -68,15 +72,27 @@ export default function AdminLoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="********"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'} // Toggle input type
+                  placeholder="********"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="pr-10" // Add padding to the right for the icon
+                />
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground focus:outline-none"
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  disabled={isLoading}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Ingresando...' : 'Ingresar'}
