@@ -120,7 +120,7 @@ export default function CatalogPage() {
     <div className="space-y-8">
       <header className="text-center my-8">
         <h1 className="text-5xl font-extrabold tracking-tight text-foreground">
-          Bienvenido a <span className="text-foreground text-glow-primary">Melosa Bar</span>
+          Bienvenido a <span className="text-primary text-glow-primary">Melosa Bar</span>
         </h1>
         <p className="mt-4 text-xl text-muted-foreground">
           Descubre nuestro delicioso menú, preparado con los mejores ingredientes.
@@ -207,7 +207,7 @@ export default function CatalogPage() {
               <div className="space-y-6">
                 {groupedAndFilteredProducts.map((group) => (
                   <div key={group.category.id}>
-                    <h3 className="text-2xl font-semibold mb-3 text-foreground border-b border-primary pb-2 text-glow-primary">{group.category.name}</h3>
+                    <h3 className="text-2xl font-semibold mb-3 text-primary border-b border-primary pb-2 text-glow-primary">{group.category.name}</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                       {group.products.map((product) => (
                         <ProductItemCard key={product.id} product={product} />
