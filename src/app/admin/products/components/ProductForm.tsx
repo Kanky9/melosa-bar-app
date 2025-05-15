@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Product, Category } from '@/types';
 import { useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 
 const productFormSchema = z.object({
   name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres.' }),
@@ -33,25 +34,29 @@ interface ProductFormProps {
   initialData?: Product | null;
   categories: Category[];
   onClose: () => void;
+  isSubmitting?: boolean;
 }
 
-export default function ProductForm({ onSubmit, initialData, categories, onClose }: ProductFormProps) {
+export default function ProductForm({ onSubmit, initialData, categories, onClose, isSubmitting = false }: ProductFormProps) {
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
-    defaultValues: initialData || {
-      name: '',
-      price: 0,
-      categoryId: '',
-      description: '',
-      imageUrl: '',
-    },
+    defaultValues: initialData ? 
+      { ...initialData, price: Number(initialData.price), imageUrl: initialData.imageUrl || '' } 
+      : {
+        name: '',
+        price: 0,
+        categoryId: categories.length > 0 ? categories[0].id : '',
+        description: '',
+        imageUrl: '',
+      },
   });
 
   useEffect(() => {
     if (initialData) {
       form.reset({
         ...initialData,
-        price: Number(initialData.price) // Ensure price is number
+        price: Number(initialData.price), // Ensure price is number
+        imageUrl: initialData.imageUrl || '',
       });
     } else {
       form.reset({
@@ -66,7 +71,7 @@ export default function ProductForm({ onSubmit, initialData, categories, onClose
 
   const handleSubmit = async (values: ProductFormValues) => {
     await onSubmit(values);
-    form.reset();
+    // Form reset handled by parent on success
   };
 
   return (
@@ -79,7 +84,7 @@ export default function ProductForm({ onSubmit, initialData, categories, onClose
             <FormItem>
               <FormLabel>Nombre del Producto</FormLabel>
               <FormControl>
-                <Input placeholder="Ej: Margarita Clásica" {...field} />
+                <Input placeholder="Ej: Margarita Clásica" {...field} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -92,7 +97,7 @@ export default function ProductForm({ onSubmit, initialData, categories, onClose
             <FormItem>
               <FormLabel>Precio</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" placeholder="Ej: 8.50" {...field} />
+                <Input type="number" step="0.01" placeholder="Ej: 8.50" {...field} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -104,10 +109,10 @@ export default function ProductForm({ onSubmit, initialData, categories, onClose
           render={({ field }) => (
             <FormItem>
               <FormLabel>Categoría</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isSubmitting || categories.length === 0}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una categoría" />
+                    <SelectValue placeholder={categories.length === 0 ? "Crea una categoría primero" : "Selecciona una categoría"} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -127,7 +132,7 @@ export default function ProductForm({ onSubmit, initialData, categories, onClose
             <FormItem>
               <FormLabel>Descripción (Opcional)</FormLabel>
               <FormControl>
-                <Textarea placeholder="Detalles del producto..." {...field} />
+                <Textarea placeholder="Detalles del producto..." {...field} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -140,18 +145,23 @@ export default function ProductForm({ onSubmit, initialData, categories, onClose
             <FormItem>
               <FormLabel>URL de la Imagen (Opcional)</FormLabel>
               <FormControl>
-                <Input placeholder="https://ejemplo.com/imagen.png" {...field} />
+                <Input placeholder="https://placehold.co/600x400.png" {...field} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         <div className="flex justify-end space-x-3 pt-4">
-           <Button type="button" variant="outline" onClick={onClose}>
+           <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? 'Guardando...' : (initialData ? 'Actualizar Producto' : 'Crear Producto')}
+          <Button type="submit" disabled={isSubmitting || form.formState.isSubmitting || (categories.length === 0 && !initialData?.categoryId) }>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Guardando...
+              </>
+            ) : (initialData ? 'Actualizar Producto' : 'Crear Producto')}
           </Button>
         </div>
       </form>

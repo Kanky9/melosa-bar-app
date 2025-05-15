@@ -1,14 +1,15 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { mockCategories, mockProducts } from '@/lib/mockData';
 import type { Category, Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import ProductItemCard from '@/components/public/ProductItemCard';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 interface GroupedProducts {
   category: Category;
@@ -20,21 +21,45 @@ export default function CatalogPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    setCategories(mockCategories);
-    setProducts(mockProducts);
-    setSelectedCategoryId(null);
-  }, []);
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch categories
+        const categoriesCollection = collection(db, 'categories');
+        const qCategories = query(categoriesCollection, orderBy('name'));
+        const categorySnapshot = await getDocs(qCategories);
+        const categoriesList = categorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
+        setCategories(categoriesList);
+        setSelectedCategoryId(null); // Default to "Todas"
+
+        // Fetch products
+        const productsCollection = collection(db, 'products');
+        const qProducts = query(productsCollection, orderBy('name'));
+        const productSnapshot = await getDocs(qProducts);
+        const productsList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+        setProducts(productsList);
+
+      } catch (error) {
+        console.error("Error fetching catalog data: ", error);
+        toast({ title: "Error", description: "No se pudo cargar el catálogo.", variant: "destructive" });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [toast]);
 
   const handleCategoryClick = (categoryId: string | null) => {
     setSelectedCategoryId(categoryId);
-    // Optionally reset search term when category changes, or let search apply to new category
-    // setSearchTerm(''); 
   };
 
   const productsToDisplay = useMemo(() => {
-    let filtered = [...products]; // Create a new array to avoid mutating the original state
+    let filtered = [...products]; 
 
     if (selectedCategoryId) {
       filtered = filtered.filter(product => product.categoryId === selectedCategoryId);
@@ -51,8 +76,9 @@ export default function CatalogPage() {
   }, [products, selectedCategoryId, searchTerm]);
 
   const groupedAndFilteredProducts = useMemo(() => {
+    if (isLoading) return null; // Don't group if loading
+
     if (selectedCategoryId === null && searchTerm.trim() !== '') {
-      // We are searching across ALL categories
       const groups: Record<string, { category: Category; products: Product[] }> = {};
       productsToDisplay.forEach(product => {
         const category = categories.find(cat => cat.id === product.categoryId);
@@ -63,13 +89,14 @@ export default function CatalogPage() {
           groups[category.id].products.push(product);
         }
       });
-      return Object.values(groups).filter(group => group.products.length > 0);
+      return Object.values(groups).filter(group => group.products.length > 0).sort((a,b) => a.category.name.localeCompare(b.category.name));
     }
-    return null; // Not grouping, or no search term
-  }, [productsToDisplay, categories, selectedCategoryId, searchTerm]);
+    return null; 
+  }, [productsToDisplay, categories, selectedCategoryId, searchTerm, isLoading]);
 
 
   const getPageTitle = () => {
+    if (isLoading) return "Cargando Catálogo...";
     if (searchTerm.trim() !== '') {
       if (selectedCategoryId) {
         const catName = categories.find(cat => cat.id === selectedCategoryId)?.name;
@@ -100,7 +127,6 @@ export default function CatalogPage() {
         </p>
       </header>
 
-      {/* Search Input */}
       <div className="mb-6 px-2">
         <div className="relative w-full md:w-3/4 lg:w-1/2 mx-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -111,56 +137,72 @@ export default function CatalogPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 h-11 text-base rounded-lg shadow-sm focus:ring-primary focus:border-primary"
             aria-label="Buscar productos"
+            disabled={isLoading && categories.length === 0}
           />
         </div>
       </div>
 
-      {/* Filtros de Categoría */}
       <div className="mb-6">
         <h2 className="text-2xl font-semibold mb-4 text-center sr-only">Categorías</h2>
-        <div className="flex flex-wrap justify-center items-center gap-2 md:gap-3 px-2 py-3 bg-muted rounded-lg shadow">
-          <Button
-            variant={selectedCategoryId === null ? 'default' : 'outline'}
-            onClick={() => handleCategoryClick(null)}
-            className="text-sm md:text-base h-10 px-4 rounded-md shadow-sm transition-all duration-150 ease-in-out hover:scale-105"
-            aria-pressed={selectedCategoryId === null}
-          >
-            Todas
-          </Button>
-          {categories.map((category) => (
+        {isLoading && categories.length === 0 ? (
+          <div className="flex justify-center items-center py-3">
+             <Loader2 className="h-6 w-6 animate-spin text-primary" />
+             <span className="ml-2">Cargando categorías...</span>
+          </div>
+        ) : (
+          <div className="flex flex-wrap justify-center items-center gap-2 md:gap-3 px-2 py-3 bg-muted rounded-lg shadow">
             <Button
-              key={category.id}
-              variant={selectedCategoryId === category.id ? 'default' : 'outline'}
-              onClick={() => handleCategoryClick(category.id)}
+              variant={selectedCategoryId === null ? 'default' : 'outline'}
+              onClick={() => handleCategoryClick(null)}
               className="text-sm md:text-base h-10 px-4 rounded-md shadow-sm transition-all duration-150 ease-in-out hover:scale-105"
-              aria-pressed={selectedCategoryId === category.id}
+              aria-pressed={selectedCategoryId === null}
+              disabled={isLoading}
             >
-              {category.name}
+              Todas
             </Button>
-          ))}
-        </div>
+            {categories.map((category) => (
+              <Button
+                key={category.id}
+                variant={selectedCategoryId === category.id ? 'default' : 'outline'}
+                onClick={() => handleCategoryClick(category.id)}
+                className="text-sm md:text-base h-10 px-4 rounded-md shadow-sm transition-all duration-150 ease-in-out hover:scale-105"
+                aria-pressed={selectedCategoryId === category.id}
+                disabled={isLoading}
+              >
+                {category.name}
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Lista de Productos en una Carta Principal */}
       <Card className="shadow-xl rounded-xl overflow-hidden">
         <CardHeader className="bg-card-foreground/5 p-6">
           <CardTitle className="text-3xl font-bold text-center text-foreground">
             {pageTitle}
           </CardTitle>
-          {!(selectedCategoryId === null && searchTerm.trim() !== '') && productsToDisplay.length > 0 && (
-             <CardDescription className="text-center text-muted-foreground pt-1">
-                {productsToDisplay.length} {productsToDisplay.length === 1 ? 'producto encontrado' : 'productos encontrados'}
-             </CardDescription>
+          {!isLoading && (
+            <>
+              {!(selectedCategoryId === null && searchTerm.trim() !== '') && productsToDisplay.length > 0 && (
+                <CardDescription className="text-center text-muted-foreground pt-1">
+                    {productsToDisplay.length} {productsToDisplay.length === 1 ? 'producto encontrado' : 'productos encontrados'}
+                </CardDescription>
+              )}
+              {groupedAndFilteredProducts && groupedAndFilteredProducts.reduce((sum, group) => sum + group.products.length, 0) > 0 && (
+                <CardDescription className="text-center text-muted-foreground pt-1">
+                    {groupedAndFilteredProducts.reduce((sum, group) => sum + group.products.length, 0)} {groupedAndFilteredProducts.reduce((sum, group) => sum + group.products.length, 0) === 1 ? 'producto encontrado' : 'productos encontrados'} en {groupedAndFilteredProducts.length} {groupedAndFilteredProducts.length === 1 ? 'categoría' : 'categorías'}
+                </CardDescription>
+              )}
+            </>
           )}
-           {groupedAndFilteredProducts && groupedAndFilteredProducts.reduce((sum, group) => sum + group.products.length, 0) > 0 && (
-             <CardDescription className="text-center text-muted-foreground pt-1">
-                {groupedAndFilteredProducts.reduce((sum, group) => sum + group.products.length, 0)} {groupedAndFilteredProducts.reduce((sum, group) => sum + group.products.length, 0) === 1 ? 'producto encontrado' : 'productos encontrados'} en {groupedAndFilteredProducts.length} {groupedAndFilteredProducts.length === 1 ? 'categoría' : 'categorías'}
-             </CardDescription>
-           )}
         </CardHeader>
         <CardContent className="p-4 md:p-6">
-          {groupedAndFilteredProducts ? (
-            // Render grouped products if searching across all categories
+          {isLoading ? (
+            <div className="flex justify-center items-center py-10">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <p className="ml-3 text-lg">Cargando productos...</p>
+            </div>
+          ) : groupedAndFilteredProducts ? (
             groupedAndFilteredProducts.length > 0 ? (
               <div className="space-y-6">
                 {groupedAndFilteredProducts.map((group) => (
@@ -180,7 +222,6 @@ export default function CatalogPage() {
               </p>
             )
           ) : (
-            // Render flat list if specific category selected or no search term
             productsToDisplay.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {productsToDisplay.map((product) => (
@@ -189,7 +230,7 @@ export default function CatalogPage() {
               </div>
             ) : (
               <p className="text-center text-muted-foreground py-8 text-lg">
-                {searchTerm.trim() !== '' ? 'No se encontraron productos que coincidan con tu búsqueda en esta categoría.' : 'No hay productos disponibles en esta categoría.'}
+                {searchTerm.trim() !== '' ? 'No se encontraron productos que coincidan con tu búsqueda en esta categoría.' : (categories.length > 0 && selectedCategoryId ? 'No hay productos disponibles en esta categoría.' : 'No hay productos disponibles.')}
               </p>
             )
           )}

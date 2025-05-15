@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -6,9 +5,8 @@ import ProductTable from './components/ProductTable';
 import ProductForm from './components/ProductForm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PlusCircle, Search } from 'lucide-react';
+import { PlusCircle, Search, Loader2 } from 'lucide-react';
 import type { Product, Category } from '@/types';
-import { mockProducts, mockCategories } from '@/lib/mockData'; 
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -18,7 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-
+import { db } from '@/lib/firebase';
+import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 
 export default function ProductsPage() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -26,40 +25,70 @@ export default function ProductsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [adminSearchTerm, setAdminSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Initialize allProducts with a copy of mockProducts to avoid direct mutation issues with React state
-    // if mockProducts itself was a state from a higher component or context.
-    // For this specific case where mockProducts is a global mutable array, 
-    // this ensures allProducts starts fresh from the potentially mutated source.
-    setAllProducts([...mockProducts]); 
-    setCategories(mockCategories);
-  }, []);
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch categories
+        const categoriesCollection = collection(db, 'categories');
+        const qCategories = query(categoriesCollection, orderBy('name'));
+        const categorySnapshot = await getDocs(qCategories);
+        const categoriesList = categorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
+        setCategories(categoriesList);
+
+        // Fetch products
+        const productsCollection = collection(db, 'products');
+        const qProducts = query(productsCollection, orderBy('name'));
+        const productSnapshot = await getDocs(qProducts);
+        const productsList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+        setAllProducts(productsList);
+
+      } catch (error) {
+        console.error("Error fetching data: ", error);
+        toast({ title: "Error", description: "No se pudieron cargar los datos.", variant: "destructive" });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [toast]);
 
   const handleFormSubmit = async (values: Omit<Product, 'id'> & { price: number }) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
+    setIsSubmitting(true);
+    const productData = {
+      ...values,
+      price: Number(values.price), // Ensure price is a number
+      imageUrl: values.imageUrl || 'https://placehold.co/600x400.png' // Default image if empty
+    };
 
-    if (editingProduct) {
-      const updatedProduct = { ...editingProduct, ...values, price: Number(values.price) };
-      setAllProducts(prev => 
-        prev.map(prod => prod.id === editingProduct.id ? updatedProduct : prod)
-      );
-      // Also update the mockProducts array directly
-      const productIndex = mockProducts.findIndex(p => p.id === editingProduct.id);
-      if (productIndex !== -1) {
-        mockProducts[productIndex] = updatedProduct;
+    try {
+      if (editingProduct) {
+        const productDocRef = doc(db, 'products', editingProduct.id);
+        await updateDoc(productDocRef, productData);
+        const updatedProduct = { ...editingProduct, ...productData };
+        setAllProducts(prev => 
+          prev.map(prod => prod.id === editingProduct.id ? updatedProduct : prod)
+        );
+        toast({ title: "Producto Actualizado", description: `El producto "${values.name}" ha sido actualizado.` });
+      } else {
+        const docRef = await addDoc(collection(db, 'products'), productData);
+        const newProduct: Product = { id: docRef.id, ...productData };
+        setAllProducts(prev => [...prev, newProduct].sort((a,b) => a.name.localeCompare(b.name)));
+        toast({ title: "Producto Creado", description: `El producto "${values.name}" ha sido creado.` });
       }
-      toast({ title: "Producto Actualizado", description: `El producto "${values.name}" ha sido actualizado.` });
-    } else {
-      const newProduct: Product = { id: `prod-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, ...values, price: Number(values.price) };
-      setAllProducts(prev => [...prev, newProduct]);
-      // Also update the mockProducts array directly
-      mockProducts.push(newProduct);
-      toast({ title: "Producto Creado", description: `El producto "${values.name}" ha sido creado.` });
+      setIsFormOpen(false);
+      setEditingProduct(null);
+    } catch (error) {
+      console.error("Error saving product: ", error);
+      toast({ title: "Error", description: "No se pudo guardar el producto.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsFormOpen(false);
-    setEditingProduct(null);
   };
 
   const handleEdit = (product: Product) => {
@@ -67,15 +96,19 @@ export default function ProductsPage() {
     setIsFormOpen(true);
   };
 
-  const handleDelete = (productId: string) => {
-    if (confirm('¿Estás seguro de que quieres eliminar este producto? Esta acción no se puede deshacer.')) {
-      setAllProducts(prev => prev.filter(prod => prod.id !== productId));
-      // Also update the mockProducts array directly
-      const productIndex = mockProducts.findIndex(p => p.id === productId);
-      if (productIndex !== -1) {
-        mockProducts.splice(productIndex, 1);
+  const handleDelete = async (productId: string) => {
+    const productToDelete = allProducts.find(prod => prod.id === productId);
+    if (!productToDelete) return;
+    
+    if (confirm(`¿Estás seguro de que quieres eliminar el producto "${productToDelete.name}"? Esta acción no se puede deshacer.`)) {
+      try {
+        await deleteDoc(doc(db, 'products', productId));
+        setAllProducts(prev => prev.filter(prod => prod.id !== productId));
+        toast({ title: "Producto Eliminado", description: "El producto ha sido eliminado.", variant: "destructive" });
+      } catch (error) {
+        console.error("Error deleting product: ", error);
+        toast({ title: "Error", description: "No se pudo eliminar el producto.", variant: "destructive" });
       }
-      toast({ title: "Producto Eliminado", description: "El producto ha sido eliminado.", variant: 'destructive' });
     }
   };
 
@@ -117,19 +150,31 @@ export default function ProductsPage() {
                     onChange={(e) => setAdminSearchTerm(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 h-10" 
                     aria-label="Buscar productos en admin"
+                    disabled={isLoading}
                 />
             </div>
-            <Button onClick={openFormForNew} className="w-full sm:w-auto">
+            <Button onClick={openFormForNew} className="w-full sm:w-auto" disabled={isLoading}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Nuevo Producto
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <ProductTable products={displayedAdminProducts} categories={categories} onEdit={handleEdit} onDelete={handleDelete} />
+          {isLoading ? (
+             <div className="flex justify-center items-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="ml-2">Cargando productos y categorías...</p>
+            </div>
+          ) : (
+            <ProductTable products={displayedAdminProducts} categories={categories} onEdit={handleEdit} onDelete={handleDelete} />
+          )}
         </CardContent>
       </Card>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog open={isFormOpen} onOpenChange={(isOpen) => {
+        if (isSubmitting && !isOpen) return;
+        setIsFormOpen(isOpen);
+        if(!isOpen) setEditingProduct(null);
+      }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingProduct ? 'Editar Producto' : 'Crear Nuevo Producto'}</DialogTitle>
@@ -137,15 +182,19 @@ export default function ProductsPage() {
               {editingProduct ? 'Modifica los detalles del producto.' : 'Añade un nuevo producto al catálogo.'}
             </DialogDescription>
           </DialogHeader>
-          <ProductForm 
-            onSubmit={handleFormSubmit as any} 
-            initialData={editingProduct}
-            categories={categories}
-            onClose={() => { setIsFormOpen(false); setEditingProduct(null); }}
-          />
+          {categories.length === 0 && !isLoading ? (
+             <p className="text-center text-destructive">No hay categorías disponibles. Por favor, crea una categoría primero.</p>
+          ) : (
+            <ProductForm 
+              onSubmit={handleFormSubmit as any} 
+              initialData={editingProduct}
+              categories={categories}
+              onClose={() => { setIsFormOpen(false); setEditingProduct(null); }}
+              isSubmitting={isSubmitting}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-

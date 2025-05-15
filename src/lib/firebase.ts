@@ -8,12 +8,12 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 // NUNCA compartas estas credenciales en un repositorio público si contienen claves sensibles.
 // Considera usar variables de entorno para esto.
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY", // Reemplaza con tu API Key
-  authDomain: "YOUR_AUTH_DOMAIN", // Reemplaza con tu Auth Domain
-  projectId: "YOUR_PROJECT_ID", // Reemplaza con tu Project ID
-  storageBucket: "YOUR_STORAGE_BUCKET", // Reemplaza con tu Storage Bucket
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // Reemplaza con tu Messaging Sender ID
-  appId: "YOUR_APP_ID" // Reemplaza con tu App ID
+  apiKey: "AIzaSyDPtO6mmiYBRJE0PtrUOr-kQCzU5hHGCqc",
+  authDomain: "melosa-77d77.firebaseapp.com",
+  projectId: "melosa-77d77",
+  storageBucket: "melosa-77d77.firebasestorage.app",
+  messagingSenderId: "370872909588",
+  appId: "1:370872909588:web:28ded40b8b844dac6bcc01"
 };
 
 let app: FirebaseApp;

@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import Logo from './Logo';
+import Logo from './Logo'; // This will resolve to src/components/Logo.tsx
 import { Button } from '@/components/ui/button';
-import { Home, Shield } from 'lucide-react';
+import { Home } from 'lucide-react';
 
 export default function Header() {
   return (
@@ -15,12 +15,7 @@ export default function Header() {
               <span className="hidden sm:inline">Catálogo</span>
             </Link>
           </Button>
-          <Button variant="ghost" asChild className="text-background hover:bg-primary hover:text-primary-foreground">
-            <Link href="/admin">
-              <Shield className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Admin</span>
-            </Link>
-          </Button>
+          {/* Admin link removed - admins will navigate to /admin-login directly */}
         </nav>
       </div>
     </header>

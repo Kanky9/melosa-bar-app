@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import type { Category } from '@/types';
 import { useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 
 const categoryFormSchema = z.object({
   name: z.string().min(2, {
@@ -28,9 +29,10 @@ interface CategoryFormProps {
   onSubmit: (values: CategoryFormValues) => Promise<void>;
   initialData?: Category | null;
   onClose: () => void;
+  isSubmitting?: boolean;
 }
 
-export default function CategoryForm({ onSubmit, initialData, onClose }: CategoryFormProps) {
+export default function CategoryForm({ onSubmit, initialData, onClose, isSubmitting = false }: CategoryFormProps) {
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categoryFormSchema),
     defaultValues: initialData || { name: '' },
@@ -46,7 +48,8 @@ export default function CategoryForm({ onSubmit, initialData, onClose }: Categor
 
   const handleSubmit = async (values: CategoryFormValues) => {
     await onSubmit(values);
-    form.reset(); // Reset form after submission
+    // Form reset is handled by the parent component after successful submission
+    // to ensure it only happens if the submission was successful.
   };
 
   return (
@@ -59,18 +62,23 @@ export default function CategoryForm({ onSubmit, initialData, onClose }: Categor
             <FormItem>
               <FormLabel>Nombre de la Categoría</FormLabel>
               <FormControl>
-                <Input placeholder="Ej: Bebidas" {...field} />
+                <Input placeholder="Ej: Bebidas" {...field} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         <div className="flex justify-end space-x-3">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? 'Guardando...' : (initialData ? 'Actualizar Categoría' : 'Crear Categoría')}
+          <Button type="submit" disabled={isSubmitting || form.formState.isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Guardando...
+              </>
+            ) : (initialData ? 'Actualizar Categoría' : 'Crear Categoría')}
           </Button>
         </div>
       </form>
