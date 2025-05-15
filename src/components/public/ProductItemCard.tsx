@@ -1,7 +1,6 @@
 import type { Product } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import Image from 'next/image'; // Assuming you might want images later
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import Image from 'next/image'; // Import next/image
 
 interface ProductItemCardProps {
   product: Product;
@@ -9,41 +8,38 @@ interface ProductItemCardProps {
 
 export default function ProductItemCard({ product }: ProductItemCardProps) {
   return (
-    <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full rounded-lg">
-      {/* Image section - currently commented out as per request */}
-      {/* {product.imageUrl && (
-        <div className="relative w-full h-48">
-          <Image
-            src={product.imageUrl}
-            alt={product.name}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-cover"
-            data-ai-hint="product drink"
+    <Card className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg overflow-hidden">
+      {/* Image section removed as per request */}
+      {/* 
+      {product.imageUrl && (
+        <div className="aspect-video overflow-hidden">
+          <Image 
+            src={product.imageUrl} 
+            alt={product.name} 
+            width={400} 
+            height={225} 
+            className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
           />
         </div>
-      )} */}
+      )}
+      */}
       <CardHeader className="pb-2 pt-4 px-4">
-        <CardTitle className="text-xl font-semibold tracking-tight truncate" title={product.name}>
-          {product.name}
-        </CardTitle>
+        <CardTitle className="text-xl font-semibold tracking-tight text-foreground">{product.name}</CardTitle>
+        {/* Description removed as per request */}
+        {/* 
+        {product.description && (
+          <p className="text-sm text-muted-foreground mt-1 truncate">{product.description}</p>
+        )}
+        */}
       </CardHeader>
-      <CardContent className="flex-grow px-4 pb-4 flex flex-col justify-between">
-        {/* Description - currently commented out as per request */}
-        {/* {product.description && (
-          <CardDescription className="text-sm text-muted-foreground mb-3 line-clamp-2">
-            {product.description}
-          </CardDescription>
-        )} */}
-        {/* Spacer if no description to push price to bottom */}
-        {/* {!product.description && <div className="flex-grow"></div>}  */}
-        
-        <div className="mt-auto"> {/* Ensures price is at the bottom if content above is sparse */}
-          <p className="text-xl font-bold text-accent text-shadow-subtle">
-            S/.{product.price.toFixed(2)}
-          </p>
-        </div>
+      <CardContent className="flex-grow px-4 pb-3 pt-1">
+        {/* Content can be added here if needed in the future */}
       </CardContent>
+      <CardFooter className="px-4 pb-4 pt-2 bg-muted/50">
+        <p className="text-foreground font-semibold text-lg text-glow-primary">
+          ${product.price.toFixed(2)}
+        </p>
+      </CardFooter>
     </Card>
   );
 }
