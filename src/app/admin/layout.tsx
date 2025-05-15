@@ -24,50 +24,40 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null); // To store Firebase auth user state
+  // user state is not strictly needed here if we rely on onAuthStateChanged's currentUser
+  // const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    setIsLoading(true); // Ensure loading is true at the start of any potential auth check/redirect
+    setIsLoading(true);
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      setUser(currentUser); // Set user state from Firebase
       const isAdminAuthenticated = localStorage.getItem('isAdminAuthenticated') === 'true';
 
       if (!currentUser || !isAdminAuthenticated) {
-        // If not a Firebase authenticated user OR not marked as admin in localStorage,
-        // redirect to the login page. AdminLayout is for protected routes.
         router.replace('/admin-login');
-        // setIsLoading(false) is not strictly needed here as redirection will cause a new render cycle.
       } else {
-        // User is authenticated via Firebase AND marked as admin in localStorage.
-        if (pathname === '/admin' || pathname === '/admin/') {
-          // If they are trying to access the base /admin or /admin/ path,
-          // redirect them to a default admin page (e.g., categories).
-          router.replace('/admin/categories');
-        } else {
-          // They are on a specific, valid admin page (e.g., /admin/products or /admin/categories).
-          // Allow content to render.
-          setIsLoading(false);
-        }
+        // User is authenticated, allow content to render.
+        // The specific redirect from /admin to /admin/categories
+        // will be handled by the src/app/admin/page.tsx component.
+        setIsLoading(false);
       }
     });
 
-    return () => unsubscribe(); // Cleanup subscription on unmount
-  }, [router, pathname]); // Dependencies for the effect
+    return () => unsubscribe();
+  }, [router]); // Pathname is not needed here as layout applies to all /admin/*
 
   const handleLogout = async () => {
     try {
       await auth.signOut();
       localStorage.removeItem('isAdminAuthenticated');
       toast({ title: 'Sesión cerrada', description: 'Has cerrado sesión correctamente.' });
-      router.push('/admin-login'); // Use push for logout for better browser history
+      router.push('/admin-login');
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       toast({ title: 'Error', description: 'No se pudo cerrar la sesión.', variant: 'destructive' });
     }
   };
   
-  // While authentication and redirection logic is processing, show a loading state.
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -76,18 +66,13 @@ export default function AdminLayout({
     );
   }
 
-  // If this point is reached, isLoading is false. This means:
-  // 1. The user is authenticated (Firebase + localStorage).
-  // 2. They are on a specific admin page (e.g., /admin/categories or /admin/products),
-  //    not /admin or /admin/ (which would have been redirected).
   return (
     <div className="flex min-h-screen flex-col bg-muted/40">
       <header className="sticky top-0 z-30 flex h-auto items-center gap-4 border-b bg-background px-4 py-3 sm:px-6 md:py-4">
         <div className="flex items-center gap-2 mr-auto">
-          {/* Replaced <Logo /> with static styled text for admin panel branding */}
           <div className={cn(
             "text-3xl font-bold text-primary",
-            "text-glow-primary" // Assuming text-glow-primary is defined in globals.css
+            "text-glow-primary" 
           )}>
             Melosa
           </div>
