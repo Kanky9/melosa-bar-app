@@ -4,12 +4,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import AdminSidebar from './components/AdminSidebar';
-import { auth } from '@/lib/firebase'; // Import auth from firebase
+import { auth } from '@/lib/firebase'; 
 import type { User } from 'firebase/auth';
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
+import Link from 'next/link'; // Import Link for mobile header logo/title
+import Logo from '@/components/Logo'; // Import Logo if you want to use it in mobile header
 
-// IMPORTANTE: Esta es una verificación de autenticación del lado del cliente.
-// NO ES SEGURA para producción. Un usuario podría manipular localStorage.
-// Para producción, usa Next.js Middleware para proteger rutas del lado del servidor.
 
 export default function AdminLayout({
   children,
@@ -20,6 +22,7 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -27,48 +30,63 @@ export default function AdminLayout({
       const isAdminAuthenticated = localStorage.getItem('isAdminAuthenticated') === 'true';
 
       if (!currentUser || !isAdminAuthenticated) {
-        // Si no está autenticado y no está ya en la página de login, redirigir.
         if (pathname !== '/admin-login') {
           router.replace('/admin-login');
         } else {
-          setIsLoading(false); // Si ya está en login, no hacer nada y permitir que se muestre.
+          setIsLoading(false); 
         }
       } else {
-        setIsLoading(false); // Autenticado, permitir acceso.
+        setIsLoading(false); 
       }
     });
 
-    // Limpiar la suscripción al desmontar
     return () => unsubscribe();
   }, [router, pathname]);
 
-  // Si está cargando la verificación o si no es un usuario autenticado y ya está en admin-login,
-  // no mostrar el layout de admin para evitar un flash de contenido.
   if (isLoading || (!user && pathname === '/admin-login')) {
-    // Podrías mostrar un spinner de carga global aquí si lo deseas
-    // Para admin-login, el propio layout de esa página se encargará.
-    // Si no es admin-login y no está autenticado, ya fue redirigido.
     if (pathname !== '/admin-login') {
       return <div className="flex min-h-screen items-center justify-center"><p>Verificando acceso...</p></div>;
     }
-    return null; // Para /admin-login, permite que esa página renderice su propio contenido completo.
+    return null; 
   }
   
-  // Si el usuario está autenticado pero intenta acceder a admin-login, redirigirlo al dashboard de admin
   if (user && localStorage.getItem('isAdminAuthenticated') === 'true' && pathname === '/admin-login') {
     router.replace('/admin');
     return <div className="flex min-h-screen items-center justify-center"><p>Redirigiendo...</p></div>;
   }
 
-
-  // Si llegamos aquí, el usuario está autenticado (o debería estarlo para rutas /admin/*)
-  // y no estamos en la página de login.
   return (
     <div className="flex min-h-screen bg-muted/40">
-      <AdminSidebar />
-      <div className="ml-64 flex-1 p-8"> 
-        {children}
+      {/* Desktop Sidebar: Fixed and always visible */}
+      <div className="hidden md:block fixed inset-y-0 left-0 z-30 w-64 border-r bg-sidebar">
+        <AdminSidebar />
       </div>
+
+      {/* Mobile Header: Fixed with Menu button for Sheet */}
+      <header className="md:hidden flex items-center justify-between p-4 bg-card border-b fixed top-0 left-0 right-0 h-16 z-40 shadow-sm">
+        <Link href="/admin" className="text-xl font-bold text-primary" onClick={() => setIsSheetOpen(false)}>
+           Melosa
+        </Link>
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="icon" aria-label="Abrir menú">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 bg-sidebar w-3/4 max-w-xs" aria-describedby={undefined} title={undefined}>
+            {/* AdminSidebar content will be rendered here. Its internal padding will apply. */}
+            <AdminSidebar onClose={() => setIsSheetOpen(false)} />
+          </SheetContent>
+        </Sheet>
+      </header>
+
+      {/* Main Content Area */}
+      {/* pt-20 (h-16 header + p-4 equivalent) for mobile to account for fixed header */}
+      {/* md:pt-8 for desktop default padding */}
+      {/* ml-0 for mobile, md:ml-64 for desktop to make space for fixed sidebar */}
+      <main className="flex-1 p-6 pt-20 md:pt-8 md:ml-64"> 
+        {children}
+      </main>
     </div>
   );
 }

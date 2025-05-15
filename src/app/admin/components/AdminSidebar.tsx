@@ -16,16 +16,29 @@ const navItems = [
   { href: '/admin/products', label: 'Productos', icon: Package },
 ];
 
-export default function AdminSidebar() {
+interface AdminSidebarProps {
+  onClose?: () => void; // Prop para cerrar el panel en móvil
+}
+
+export default function AdminSidebar({ onClose }: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
 
+  const handleNavigation = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await auth.signOut();
-      localStorage.removeItem('isAdminAuthenticated'); // Limpiar el indicador local
+      localStorage.removeItem('isAdminAuthenticated');
       toast({ title: 'Sesión cerrada', description: 'Has cerrado sesión correctamente.' });
+      if (onClose) {
+        onClose();
+      }
       router.push('/admin-login');
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
@@ -34,7 +47,7 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className="w-64 bg-sidebar text-sidebar-foreground p-6 flex flex-col space-y-6 fixed h-full shadow-lg">
+    <aside className="w-64 bg-sidebar text-sidebar-foreground p-6 flex flex-col space-y-6 shadow-lg h-full">
       <div className="text-center mb-4">
         <Logo />
       </div>
@@ -51,6 +64,7 @@ export default function AdminSidebar() {
                     : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                 )}
                 asChild
+                onClick={handleNavigation}
               >
                 <Link href={item.href}>
                   <item.icon className="mr-3 h-5 w-5" />
