@@ -3,17 +3,15 @@ import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 
-// Tus credenciales de configuración de Firebase van aquí
-// Asegúrate de reemplazarlas con las de tu proyecto real
-// NUNCA compartas estas credenciales en un repositorio público si contienen claves sensibles.
-// Considera usar variables de entorno para esto.
+// Your web app's Firebase configuration
+// These variables are loaded from the .env.local file
 const firebaseConfig = {
-  apiKey: "AIzaSyDPtO6mmiYBRJE0PtrUOr-kQCzU5hHGCqc",
-  authDomain: "melosa-77d77.firebaseapp.com",
-  projectId: "melosa-77d77",
-  storageBucket: "melosa-77d77.firebasestorage.app",
-  messagingSenderId: "370872909588",
-  appId: "1:370872909588:web:28ded40b8b844dac6bcc01"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
 let app: FirebaseApp;
